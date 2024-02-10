@@ -22,8 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdio.h>
-
+#include "bootloader.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,17 +36,13 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define MAJOR 0
-#define MINOR 1
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
- SD_HandleTypeDef hsd;
-
+SD_HandleTypeDef hsd;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-const uint8_t PROG_VER[2] = {MAJOR, MINOR};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,10 +91,8 @@ int main(void)
   MX_FATFS_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  printf("Bootloader start - Blink LED (%d.%d) \r\n", PROG_VER[0], PROG_VER[1]);
-  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_SET);
-  //HAL_Delay(200);
-  goto_application(); // Jump to application code
+
+  bootloader_init(); // Start bootloader
 
   /* USER CODE END 2 */
 
@@ -268,16 +261,6 @@ int fputc(intch, FILE *f)
 	return ch;
 }
 
-static void goto_application(void)
-{
-	printf("Jumping to application \r\n");
-
-	void (*app_reset_handler) (void) =
-			(void*) (*(volatile uint32_t*)(0x08040000 + 0x04));
-
-	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_RESET);
-	app_reset_handler(); // application starting point
-}
 
 /* USER CODE END 4 */
 
