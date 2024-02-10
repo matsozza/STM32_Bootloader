@@ -39,7 +39,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-SD_HandleTypeDef hsd;
+ SD_HandleTypeDef hsd;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
