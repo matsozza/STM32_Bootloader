@@ -89,7 +89,7 @@ void HardFault_Handler(void)
 	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_RESET);
 
 	// Send error message to UART
-	COMM_UART_SendString("HardFault Error");
+	//COMM_UART_SendString("HardFault Error");
 
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
@@ -210,11 +210,9 @@ void SysTick_Handler(void)
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
-
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
-
   /* USER CODE END USART2_IRQn 1 */
 }
 

@@ -24,6 +24,9 @@
 #define UART_DEVICE_HANDLER huart2
 
 /* Function prototypes -------------------------------------------------------*/
-void COMM_UART_SendString(char[]);
+HAL_StatusTypeDef COMM_UART_ReceiveData(uint8_t* dataPtr, uint8_t size, uint32_t delay);
+HAL_StatusTypeDef COMM_UART_SendData(uint8_t* dataPtr, uint8_t size, uint32_t delay);
+
+/* Inline Functions  ---------------------------------------------------------*/
 
 #endif /* EF22B106_379E_4678_B839_82EDA23F8A4B */
