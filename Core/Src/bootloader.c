@@ -72,31 +72,30 @@ void bootloader_init()
 			(uint8_t) ((nOfPackets & 0x0000FF00) >> 8),
 			(uint8_t) ((nOfPackets & 0x000000FF) >> 0)}, 4, SERIAL_TIMEOUT);
 
-		// --------------- d_ Start flashing MCU sectors (dummy flashing) ---------------
-		const uint32_t flash_sectorAddr[] = FLASH_SECTOR_ADDR;
-		const uint32_t flash_sectorSize[] = FLASH_SECTOR_SIZE;
-		uint8_t idxSector;
+		// --------------- d_ Start receiving data + flashing MCU sectors (dummy flashing) ---------------
+		const uint32_t sectorAddr[] = FLASH_SECTOR_ADDR;
+		const uint32_t sectorSize[] = FLASH_SECTOR_SIZE;
+		uint32_t nOfFlashed = 0;
 
-		for(idxSector = APP_FLASH_SECINI; idxSector<= APP_FLASH_SECFIN; idxSector++)
+		for(uint8_t nSector = APP_FLASH_SECINI; nSector<= APP_FLASH_SECFIN; nSector++)
 		{
 			// Write all the addresses contained in the current flash sector
-			uint32_t sectorAddr;
-			for(sectorAddr=flash_sectorAddr[idxSector];
-			sectorAddr<flash_sectorAddr[idxSector]+flash_sectorSize[idxSector];
-			sectorAddr+=0x04)
+			for(uint32_t addr=sectorAddr[nSector]; addr<(sectorAddr[nSector]+sectorSize[nSector]); addr+=0x04)
 			{
-				halStatus = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, sectorAddr, (uint64_t) 0x89ABCDEF);
+				// Receive a SW packet via serial + parse it (little-endian) + write it to flash memory
+				COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT);
+				uint32_t packetData = (rx[3] << 24) + (rx[2] << 16) + (rx[1] << 8) + (rx[0] << 0);
+				halStatus = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, (uint64_t) packetData);
 
 				if(halStatus != HAL_OK) // If there was any error programming the memory
 				{
 					COMM_UART_SendData((uint8_t[4]) {0x8F, 0x01, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT);
+					break;
 				}
 
 				HAL_GPIO_TogglePin(GPIOF, GPIO_PIN_10);
 			}
-
-			COMM_UART_SendData((uint8_t[4]) {0x83, idxSector, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT);
-
+			COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT);
 		}
 		HAL_FLASH_Lock();
 		HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_SET);
@@ -107,11 +106,6 @@ void bootloader_init()
 
 	//printf("\n\r\0");
 
-	while(1)
-	{
-
-	}
-
 	bootloader_loadApplication(); // Load application file
 }
 
@@ -120,7 +114,8 @@ static void bootloader_loadApplication()
 	//printf("Bootloader - Jumping to application \r\n\0");
 
 	// Function pointer to application's reset handler
-	void (*app_Reset_Handler)(void) =	(void*)(*(volatile uint32_t*)(APP_FLASH_ADDRESS + 0x04));
+	const uint32_t sectorAddr[] = FLASH_SECTOR_ADDR;
+	void (*app_Reset_Handler)(void) =	(void*)(*(volatile uint32_t*)(sectorAddr[APP_FLASH_SECINI] + 0x04));
 
 	// Turn-on board LED0
 	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_9, GPIO_PIN_RESET);
