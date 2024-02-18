@@ -29,23 +29,23 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  12 .ARM.attributes 00000030  00000000  00000000  0002000c  2**0
                   CONTENTS, READONLY
- 13 .debug_info   0000f36c  00000000  00000000  0002003c  2**0
+ 13 .debug_info   0000f368  00000000  00000000  0002003c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_abbrev 00002b39  00000000  00000000  0002f3a8  2**0
+ 14 .debug_abbrev 00002b40  00000000  00000000  0002f3a4  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  15 .debug_aranges 00000cc0  00000000  00000000  00031ee8  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_ranges 00000b98  00000000  00000000  00032ba8  2**3
+ 16 .debug_ranges 00000bb0  00000000  00000000  00032ba8  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_macro  000230ed  00000000  00000000  00033740  2**0
+ 17 .debug_macro  000230ed  00000000  00000000  00033758  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_line   00010abd  00000000  00000000  0005682d  2**0
+ 18 .debug_line   00010ac5  00000000  00000000  00056845  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_str    000c9153  00000000  00000000  000672ea  2**0
+ 19 .debug_str    000c9153  00000000  00000000  0006730a  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 20 .comment      00000050  00000000  00000000  0013043d  2**0
+ 20 .comment      00000050  00000000  00000000  0013045d  2**0
                   CONTENTS, READONLY
- 21 .debug_frame  00003240  00000000  00000000  00130490  2**2
+ 21 .debug_frame  00003240  00000000  00000000  001304b0  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -383,14 +383,14 @@ void bootloader_init()
 	COMM_UART_SendData((uint8_t[4]) {0x80,0xFF,0xFF,0xFF}, 4, SERIAL_TIMEOUT);
  80004ec:	4b9e      	ldr	r3, [pc, #632]	; (8000768 <bootloader_init+0x29c>)
  80004ee:	681b      	ldr	r3, [r3, #0]
- 80004f0:	67bb      	str	r3, [r7, #120]	; 0x78
- 80004f2:	f107 0378 	add.w	r3, r7, #120	; 0x78
+ 80004f0:	677b      	str	r3, [r7, #116]	; 0x74
+ 80004f2:	f107 0374 	add.w	r3, r7, #116	; 0x74
  80004f6:	f44f 727a 	mov.w	r2, #1000	; 0x3e8
  80004fa:	2104      	movs	r1, #4
  80004fc:	4618      	mov	r0, r3
  80004fe:	f000 f9c9 	bl	8000894 <COMM_UART_SendData>
 	COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT);
- 8000502:	f107 0380 	add.w	r3, r7, #128	; 0x80
+ 8000502:	f107 037c 	add.w	r3, r7, #124	; 0x7c
  8000506:	f44f 727a 	mov.w	r2, #1000	; 0x3e8
  800050a:	2104      	movs	r1, #4
  800050c:	4618      	mov	r0, r3
@@ -399,9 +399,9 @@ void bootloader_init()
 	if(_checkPacket(rx, (uint8_t[4]){0xC0,0xFF,0xFF,0xFF}, (uint8_t) 0b1000))
  8000512:	4b96      	ldr	r3, [pc, #600]	; (800076c <bootloader_init+0x2a0>)
  8000514:	681b      	ldr	r3, [r3, #0]
- 8000516:	673b      	str	r3, [r7, #112]	; 0x70
- 8000518:	f107 0170 	add.w	r1, r7, #112	; 0x70
- 800051c:	f107 0380 	add.w	r3, r7, #128	; 0x80
+ 8000516:	66fb      	str	r3, [r7, #108]	; 0x6c
+ 8000518:	f107 016c 	add.w	r1, r7, #108	; 0x6c
+ 800051c:	f107 037c 	add.w	r3, r7, #124	; 0x7c
  8000520:	2208      	movs	r2, #8
  8000522:	4618      	mov	r0, r3
  8000524:	f000 f946 	bl	80007b4 <_checkPacket>
@@ -417,7 +417,7 @@ void bootloader_init()
 		halStatus = HAL_FLASH_Unlock();
  8000536:	f000 ff3b 	bl	80013b0 <HAL_FLASH_Unlock>
  800053a:	4603      	mov	r3, r0
- 800053c:	f887 307f 	strb.w	r3, [r7, #127]	; 0x7f
+ 800053c:	f887 307b 	strb.w	r3, [r7, #123]	; 0x7b
 
 		// --------------- b_ Erase all memory sectors dedicated to application software ---------------
 		for(uint8_t idxS=APP_FLASH_SECINI; idxS <= APP_FLASH_SECFIN; idxS++ )
@@ -432,14 +432,14 @@ void bootloader_init()
  8000550:	f001 f890 	bl	8001674 <FLASH_Erase_Sector>
 			COMM_UART_SendData((uint8_t[4]){0x81,idxS,0xFF,0xFF}, 4, SERIAL_TIMEOUT);
  8000554:	2381      	movs	r3, #129	; 0x81
- 8000556:	f887 3068 	strb.w	r3, [r7, #104]	; 0x68
+ 8000556:	f887 3064 	strb.w	r3, [r7, #100]	; 0x64
  800055a:	f897 3097 	ldrb.w	r3, [r7, #151]	; 0x97
- 800055e:	f887 3069 	strb.w	r3, [r7, #105]	; 0x69
+ 800055e:	f887 3065 	strb.w	r3, [r7, #101]	; 0x65
  8000562:	23ff      	movs	r3, #255	; 0xff
- 8000564:	f887 306a 	strb.w	r3, [r7, #106]	; 0x6a
+ 8000564:	f887 3066 	strb.w	r3, [r7, #102]	; 0x66
  8000568:	23ff      	movs	r3, #255	; 0xff
- 800056a:	f887 306b 	strb.w	r3, [r7, #107]	; 0x6b
- 800056e:	f107 0368 	add.w	r3, r7, #104	; 0x68
+ 800056a:	f887 3067 	strb.w	r3, [r7, #103]	; 0x67
+ 800056e:	f107 0364 	add.w	r3, r7, #100	; 0x64
  8000572:	f44f 727a 	mov.w	r2, #1000	; 0x3e8
  8000576:	2104      	movs	r1, #4
  8000578:	4618      	mov	r0, r3
@@ -464,38 +464,38 @@ void bootloader_init()
 
 		// --------------- c_ Confirm MCU is ready to receive the provided number of packets ---------------
 		uint32_t nOfPackets = (uint32_t) (rx[3] + (rx[2]<< 8) + (rx[1] << 16));
- 80005a6:	f897 3083 	ldrb.w	r3, [r7, #131]	; 0x83
+ 80005a6:	f897 307f 	ldrb.w	r3, [r7, #127]	; 0x7f
  80005aa:	461a      	mov	r2, r3
- 80005ac:	f897 3082 	ldrb.w	r3, [r7, #130]	; 0x82
+ 80005ac:	f897 307e 	ldrb.w	r3, [r7, #126]	; 0x7e
  80005b0:	021b      	lsls	r3, r3, #8
  80005b2:	441a      	add	r2, r3
- 80005b4:	f897 3081 	ldrb.w	r3, [r7, #129]	; 0x81
+ 80005b4:	f897 307d 	ldrb.w	r3, [r7, #125]	; 0x7d
  80005b8:	041b      	lsls	r3, r3, #16
  80005ba:	4413      	add	r3, r2
- 80005bc:	f8c7 308c 	str.w	r3, [r7, #140]	; 0x8c
+ 80005bc:	f8c7 3084 	str.w	r3, [r7, #132]	; 0x84
 		COMM_UART_SendData(
 			(uint8_t[4]) {0x82,
  80005c0:	2382      	movs	r3, #130	; 0x82
- 80005c2:	f887 306c 	strb.w	r3, [r7, #108]	; 0x6c
+ 80005c2:	f887 3068 	strb.w	r3, [r7, #104]	; 0x68
 			(uint8_t) ((nOfPackets & 0x00FF0000) >> 16),
- 80005c6:	f8d7 308c 	ldr.w	r3, [r7, #140]	; 0x8c
+ 80005c6:	f8d7 3084 	ldr.w	r3, [r7, #132]	; 0x84
  80005ca:	0c1b      	lsrs	r3, r3, #16
  80005cc:	b2db      	uxtb	r3, r3
 			(uint8_t[4]) {0x82,
- 80005ce:	f887 306d 	strb.w	r3, [r7, #109]	; 0x6d
+ 80005ce:	f887 3069 	strb.w	r3, [r7, #105]	; 0x69
 			(uint8_t) ((nOfPackets & 0x0000FF00) >> 8),
- 80005d2:	f8d7 308c 	ldr.w	r3, [r7, #140]	; 0x8c
+ 80005d2:	f8d7 3084 	ldr.w	r3, [r7, #132]	; 0x84
  80005d6:	0a1b      	lsrs	r3, r3, #8
  80005d8:	b2db      	uxtb	r3, r3
 			(uint8_t[4]) {0x82,
- 80005da:	f887 306e 	strb.w	r3, [r7, #110]	; 0x6e
+ 80005da:	f887 306a 	strb.w	r3, [r7, #106]	; 0x6a
 			(uint8_t) ((nOfPackets & 0x000000FF) >> 0)}, 4, SERIAL_TIMEOUT);
- 80005de:	f8d7 308c 	ldr.w	r3, [r7, #140]	; 0x8c
+ 80005de:	f8d7 3084 	ldr.w	r3, [r7, #132]	; 0x84
  80005e2:	b2db      	uxtb	r3, r3
 			(uint8_t[4]) {0x82,
- 80005e4:	f887 306f 	strb.w	r3, [r7, #111]	; 0x6f
+ 80005e4:	f887 306b 	strb.w	r3, [r7, #107]	; 0x6b
 		COMM_UART_SendData(
- 80005e8:	f107 036c 	add.w	r3, r7, #108	; 0x6c
+ 80005e8:	f107 0368 	add.w	r3, r7, #104	; 0x68
  80005ec:	f44f 727a 	mov.w	r2, #1000	; 0x3e8
  80005f0:	2104      	movs	r1, #4
  80005f2:	4618      	mov	r0, r3
@@ -524,57 +524,57 @@ void bootloader_init()
  8000622:	e884 000f 	stmia.w	r4, {r0, r1, r2, r3}
 		uint32_t nOfFlashed = 0;
  8000626:	2300      	movs	r3, #0
- 8000628:	f8c7 3088 	str.w	r3, [r7, #136]	; 0x88
+ 8000628:	f8c7 3090 	str.w	r3, [r7, #144]	; 0x90
 
 		for(uint8_t nSector = APP_FLASH_SECINI; nSector<= APP_FLASH_SECFIN; nSector++)
  800062c:	2306      	movs	r3, #6
- 800062e:	f887 3096 	strb.w	r3, [r7, #150]	; 0x96
- 8000632:	e078      	b.n	8000726 <bootloader_init+0x25a>
+ 800062e:	f887 308f 	strb.w	r3, [r7, #143]	; 0x8f
+ 8000632:	e076      	b.n	8000722 <bootloader_init+0x256>
 		{
 			// Write all the addresses contained in the current flash sector
 			for(uint32_t addr=sectorAddr[nSector]; addr<(sectorAddr[nSector]+sectorSize[nSector]); addr+=0x04)
- 8000634:	f897 3096 	ldrb.w	r3, [r7, #150]	; 0x96
+ 8000634:	f897 308f 	ldrb.w	r3, [r7, #143]	; 0x8f
  8000638:	009b      	lsls	r3, r3, #2
  800063a:	3398      	adds	r3, #152	; 0x98
  800063c:	443b      	add	r3, r7
  800063e:	f853 3c98 	ldr.w	r3, [r3, #-152]
- 8000642:	f8c7 3090 	str.w	r3, [r7, #144]	; 0x90
- 8000646:	e041      	b.n	80006cc <bootloader_init+0x200>
+ 8000642:	f8c7 3088 	str.w	r3, [r7, #136]	; 0x88
+ 8000646:	e04c      	b.n	80006e2 <bootloader_init+0x216>
 			{
 				// Receive a SW packet via serial + parse it (little-endian) + write it to flash memory
 				COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT);
- 8000648:	f107 0380 	add.w	r3, r7, #128	; 0x80
+ 8000648:	f107 037c 	add.w	r3, r7, #124	; 0x7c
  800064c:	f44f 727a 	mov.w	r2, #1000	; 0x3e8
  8000650:	2104      	movs	r1, #4
  8000652:	4618      	mov	r0, r3
  8000654:	f000 f906 	bl	8000864 <COMM_UART_ReceiveData>
 				uint32_t packetData = (rx[3] << 24) + (rx[2] << 16) + (rx[1] << 8) + (rx[0] << 0);
- 8000658:	f897 3083 	ldrb.w	r3, [r7, #131]	; 0x83
+ 8000658:	f897 307f 	ldrb.w	r3, [r7, #127]	; 0x7f
  800065c:	061a      	lsls	r2, r3, #24
- 800065e:	f897 3082 	ldrb.w	r3, [r7, #130]	; 0x82
+ 800065e:	f897 307e 	ldrb.w	r3, [r7, #126]	; 0x7e
  8000662:	041b      	lsls	r3, r3, #16
  8000664:	441a      	add	r2, r3
- 8000666:	f897 3081 	ldrb.w	r3, [r7, #129]	; 0x81
+ 8000666:	f897 307d 	ldrb.w	r3, [r7, #125]	; 0x7d
  800066a:	021b      	lsls	r3, r3, #8
  800066c:	4413      	add	r3, r2
- 800066e:	f897 2080 	ldrb.w	r2, [r7, #128]	; 0x80
+ 800066e:	f897 207c 	ldrb.w	r2, [r7, #124]	; 0x7c
  8000672:	4413      	add	r3, r2
- 8000674:	f8c7 3084 	str.w	r3, [r7, #132]	; 0x84
+ 8000674:	f8c7 3080 	str.w	r3, [r7, #128]	; 0x80
 				halStatus = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, (uint64_t) packetData);
- 8000678:	f8d7 3084 	ldr.w	r3, [r7, #132]	; 0x84
+ 8000678:	f8d7 3080 	ldr.w	r3, [r7, #128]	; 0x80
  800067c:	2200      	movs	r2, #0
  800067e:	4698      	mov	r8, r3
  8000680:	4691      	mov	r9, r2
  8000682:	4642      	mov	r2, r8
  8000684:	464b      	mov	r3, r9
- 8000686:	f8d7 1090 	ldr.w	r1, [r7, #144]	; 0x90
+ 8000686:	f8d7 1088 	ldr.w	r1, [r7, #136]	; 0x88
  800068a:	2002      	movs	r0, #2
  800068c:	f000 fe3c 	bl	8001308 <HAL_FLASH_Program>
  8000690:	4603      	mov	r3, r0
- 8000692:	f887 307f 	strb.w	r3, [r7, #127]	; 0x7f
+ 8000692:	f887 307b 	strb.w	r3, [r7, #123]	; 0x7b
 
 				if(halStatus != HAL_OK) // If there was any error programming the memory
- 8000696:	f897 307f 	ldrb.w	r3, [r7, #127]	; 0x7f
+ 8000696:	f897 307b 	ldrb.w	r3, [r7, #123]	; 0x7b
  800069a:	b2db      	uxtb	r3, r3
  800069c:	2b00      	cmp	r3, #0
  800069e:	d00b      	beq.n	80006b8 <bootloader_init+0x1ec>
@@ -589,53 +589,62 @@ void bootloader_init()
  80006b0:	4618      	mov	r0, r3
  80006b2:	f000 f8ef 	bl	8000894 <COMM_UART_SendData>
 					break;
- 80006b6:	e01c      	b.n	80006f2 <bootloader_init+0x226>
+ 80006b6:	e029      	b.n	800070c <bootloader_init+0x240>
 				}
 
+				if (++nOfFlashed == nOfPackets)
+ 80006b8:	f8d7 3090 	ldr.w	r3, [r7, #144]	; 0x90
+ 80006bc:	3301      	adds	r3, #1
+ 80006be:	f8c7 3090 	str.w	r3, [r7, #144]	; 0x90
+ 80006c2:	f8d7 2090 	ldr.w	r2, [r7, #144]	; 0x90
+ 80006c6:	f8d7 3084 	ldr.w	r3, [r7, #132]	; 0x84
+ 80006ca:	429a      	cmp	r2, r3
+ 80006cc:	d01d      	beq.n	800070a <bootloader_init+0x23e>
+				{
+					break;
+				}
 				HAL_GPIO_TogglePin(GPIOF, GPIO_PIN_10);
- 80006b8:	f44f 6180 	mov.w	r1, #1024	; 0x400
- 80006bc:	4829      	ldr	r0, [pc, #164]	; (8000764 <bootloader_init+0x298>)
- 80006be:	f001 f9ee 	bl	8001a9e <HAL_GPIO_TogglePin>
+ 80006ce:	f44f 6180 	mov.w	r1, #1024	; 0x400
+ 80006d2:	4824      	ldr	r0, [pc, #144]	; (8000764 <bootloader_init+0x298>)
+ 80006d4:	f001 f9e3 	bl	8001a9e <HAL_GPIO_TogglePin>
 			for(uint32_t addr=sectorAddr[nSector]; addr<(sectorAddr[nSector]+sectorSize[nSector]); addr+=0x04)
- 80006c2:	f8d7 3090 	ldr.w	r3, [r7, #144]	; 0x90
- 80006c6:	3304      	adds	r3, #4
- 80006c8:	f8c7 3090 	str.w	r3, [r7, #144]	; 0x90
- 80006cc:	f897 3096 	ldrb.w	r3, [r7, #150]	; 0x96
- 80006d0:	009b      	lsls	r3, r3, #2
- 80006d2:	3398      	adds	r3, #152	; 0x98
- 80006d4:	443b      	add	r3, r7
- 80006d6:	f853 2c98 	ldr.w	r2, [r3, #-152]
- 80006da:	f897 3096 	ldrb.w	r3, [r7, #150]	; 0x96
- 80006de:	009b      	lsls	r3, r3, #2
- 80006e0:	3398      	adds	r3, #152	; 0x98
- 80006e2:	443b      	add	r3, r7
- 80006e4:	f853 3c68 	ldr.w	r3, [r3, #-104]
- 80006e8:	4413      	add	r3, r2
- 80006ea:	f8d7 2090 	ldr.w	r2, [r7, #144]	; 0x90
- 80006ee:	429a      	cmp	r2, r3
- 80006f0:	d3aa      	bcc.n	8000648 <bootloader_init+0x17c>
+ 80006d8:	f8d7 3088 	ldr.w	r3, [r7, #136]	; 0x88
+ 80006dc:	3304      	adds	r3, #4
+ 80006de:	f8c7 3088 	str.w	r3, [r7, #136]	; 0x88
+ 80006e2:	f897 308f 	ldrb.w	r3, [r7, #143]	; 0x8f
+ 80006e6:	009b      	lsls	r3, r3, #2
+ 80006e8:	3398      	adds	r3, #152	; 0x98
+ 80006ea:	443b      	add	r3, r7
+ 80006ec:	f853 2c98 	ldr.w	r2, [r3, #-152]
+ 80006f0:	f897 308f 	ldrb.w	r3, [r7, #143]	; 0x8f
+ 80006f4:	009b      	lsls	r3, r3, #2
+ 80006f6:	3398      	adds	r3, #152	; 0x98
+ 80006f8:	443b      	add	r3, r7
+ 80006fa:	f853 3c68 	ldr.w	r3, [r3, #-104]
+ 80006fe:	4413      	add	r3, r2
+ 8000700:	f8d7 2088 	ldr.w	r2, [r7, #136]	; 0x88
+ 8000704:	429a      	cmp	r2, r3
+ 8000706:	d39f      	bcc.n	8000648 <bootloader_init+0x17c>
+ 8000708:	e000      	b.n	800070c <bootloader_init+0x240>
+					break;
+ 800070a:	bf00      	nop
 			}
-			COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT);
- 80006f2:	2383      	movs	r3, #131	; 0x83
- 80006f4:	f887 3064 	strb.w	r3, [r7, #100]	; 0x64
- 80006f8:	f897 3096 	ldrb.w	r3, [r7, #150]	; 0x96
- 80006fc:	f887 3065 	strb.w	r3, [r7, #101]	; 0x65
- 8000700:	23ff      	movs	r3, #255	; 0xff
- 8000702:	f887 3066 	strb.w	r3, [r7, #102]	; 0x66
- 8000706:	23ff      	movs	r3, #255	; 0xff
- 8000708:	f887 3067 	strb.w	r3, [r7, #103]	; 0x67
- 800070c:	f107 0364 	add.w	r3, r7, #100	; 0x64
- 8000710:	f44f 727a 	mov.w	r2, #1000	; 0x3e8
- 8000714:	2104      	movs	r1, #4
- 8000716:	4618      	mov	r0, r3
- 8000718:	f000 f8bc 	bl	8000894 <COMM_UART_SendData>
+			if (nOfFlashed == nOfPackets) break;
+ 800070c:	f8d7 2090 	ldr.w	r2, [r7, #144]	; 0x90
+ 8000710:	f8d7 3084 	ldr.w	r3, [r7, #132]	; 0x84
+ 8000714:	429a      	cmp	r2, r3
+ 8000716:	d009      	beq.n	800072c <bootloader_init+0x260>
 		for(uint8_t nSector = APP_FLASH_SECINI; nSector<= APP_FLASH_SECFIN; nSector++)
- 800071c:	f897 3096 	ldrb.w	r3, [r7, #150]	; 0x96
- 8000720:	3301      	adds	r3, #1
- 8000722:	f887 3096 	strb.w	r3, [r7, #150]	; 0x96
- 8000726:	f897 3096 	ldrb.w	r3, [r7, #150]	; 0x96
- 800072a:	2b0b      	cmp	r3, #11
- 800072c:	d982      	bls.n	8000634 <bootloader_init+0x168>
+ 8000718:	f897 308f 	ldrb.w	r3, [r7, #143]	; 0x8f
+ 800071c:	3301      	adds	r3, #1
+ 800071e:	f887 308f 	strb.w	r3, [r7, #143]	; 0x8f
+ 8000722:	f897 308f 	ldrb.w	r3, [r7, #143]	; 0x8f
+ 8000726:	2b0b      	cmp	r3, #11
+ 8000728:	d984      	bls.n	8000634 <bootloader_init+0x168>
+ 800072a:	e000      	b.n	800072e <bootloader_init+0x262>
+			if (nOfFlashed == nOfPackets) break;
+ 800072c:	bf00      	nop
+			//COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT); // TODO check if needed
 		}
 		HAL_FLASH_Lock();
  800072e:	f000 fe61 	bl	80013f4 <HAL_FLASH_Lock>
@@ -650,8 +659,8 @@ void bootloader_init()
 	COMM_UART_SendData((uint8_t[4]) {0x84, 0x00, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT);
  800073e:	4b10      	ldr	r3, [pc, #64]	; (8000780 <bootloader_init+0x2b4>)
  8000740:	681b      	ldr	r3, [r3, #0]
- 8000742:	677b      	str	r3, [r7, #116]	; 0x74
- 8000744:	f107 0374 	add.w	r3, r7, #116	; 0x74
+ 8000742:	673b      	str	r3, [r7, #112]	; 0x70
+ 8000744:	f107 0370 	add.w	r3, r7, #112	; 0x70
  8000748:	f44f 727a 	mov.w	r2, #1000	; 0x3e8
  800074c:	2104      	movs	r1, #4
  800074e:	4618      	mov	r0, r3

@@ -93,9 +93,14 @@ void bootloader_init()
 					break;
 				}
 
+				if (++nOfFlashed == nOfPackets)
+				{
+					break;
+				}
 				HAL_GPIO_TogglePin(GPIOF, GPIO_PIN_10);
 			}
-			COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT);
+			if (nOfFlashed == nOfPackets) break;
+			//COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT); // TODO check if needed
 		}
 		HAL_FLASH_Lock();
 		HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_SET);
