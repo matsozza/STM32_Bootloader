@@ -39,7 +39,7 @@ HAL_StatusTypeDef COMM_UART_SendData(uint8_t* dataPtr, uint8_t size, uint32_t de
   uint32_t dly = _ticToc();
   if(dly<100) HAL_Delay(100 - dly);
   
-  // Start data transmission
+  // Start data transmission (force transmission)
   HAL_StatusTypeDef halStatus;
   do{
     halStatus = HAL_UART_Transmit(&UART_DEVICE_HANDLER, dataPtr , size, delay);
