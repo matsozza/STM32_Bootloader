@@ -33,20 +33,21 @@ inline static uint8_t _bootloader_eraseApplicationSectors(void);
 inline static uint32_t _bootloader_acknowledgePackets(void);
 inline static uint32_t _bootloader_receiveAndFlashPackets(uint32_t);
 inline static void _bootloader_loadApplication(void);
+
 inline static uint8_t _checkPacket(uint8_t* packet, uint8_t expectedPacket[4],  uint8_t significance);
 
 /* Functions implementation --------------------------------------------------*/
 void bootloader_init()
 {
-	uint32_t curr_SW_MAJOR = (uint32_t) *(uint32_t*)(sectorAddr[APP_FLASH_SECINI] + 0x200); // FIXME create a cfg. mem section
-	uint32_t curr_SW_MINOR = (uint32_t) *(uint32_t*)(sectorAddr[APP_FLASH_SECINI] + 0x204); // FIXME create a cfg. mem section
+	uint32_t curr_SW_MAJOR = (uint32_t) *(uint32_t*)(sectorAddr[APP_FLASH_SECINI] + 0x200); // FIXME setup the cfg. mem section
+	uint32_t curr_SW_MINOR = (uint32_t) *(uint32_t*)(sectorAddr[APP_FLASH_SECINI] + 0x204); // FIXME setup the cfg. mem section
 
 	// 1_(0x80) Try to open communication with OTA serial interface 
 	COMM_UART_SendData((uint8_t[4]) {0x80,0xFF,0xFF,0xFF}, 4, SERIAL_TIMEOUT);
 	
 	// 2_(0xC0) Check if MCU answered via OTA serial interface 
 	if(COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT)!= HAL_OK) goto JUMP_TO_APPLICATION;
-	
+
 	if(_checkPacket(rx, (uint8_t[4]){0xC0,0xFF,0xFF,0xFF}, (uint8_t) 0b1000))
 	{
 		// Check if the SW to be flashed is a different version from current MCU image
@@ -95,25 +96,18 @@ JUMP_TO_APPLICATION:
 inline static uint8_t _bootloader_eraseApplicationSectors()
 {	
 	HAL_StatusTypeDef halStatus;
-
 	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_9, GPIO_PIN_SET); // Turn-off LED0
 	for(uint8_t idxS=APP_FLASH_SECINI; idxS <= APP_FLASH_SECFIN; idxS++ )
 	{
-
-		
 		FLASH_Erase_Sector(idxS,FLASH_VOLTAGE_RANGE_3);
-		
 		halStatus = COMM_UART_SendData((uint8_t[4]){0x81,
 										idxS,
 										idxS == APP_FLASH_SECFIN,
 										0xFF}, 
 										4, SERIAL_TIMEOUT); // Send (0x81 + sector no. + isLastSector) to confirm erased sector
-		
 		if(halStatus!= HAL_OK) return 0; // Error in TX
-
 		HAL_GPIO_TogglePin(GPIOF, GPIO_PIN_9); // Toggle LED0
 	}
-
 	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_9, GPIO_PIN_SET); // Turn-off LED0
 	return 1; // OK
 }
@@ -134,9 +128,7 @@ inline static uint32_t _bootloader_acknowledgePackets()
 			(uint8_t) ((nOfPackets & 0x0000FF00) >> 8),
 			(uint8_t) ((nOfPackets & 0x000000FF) >> 0)},
 			4, SERIAL_TIMEOUT); // Answer back acknowledging the received 'nOfPackets' value
-
 		if(halStatus != HAL_OK) return 0; // Error in TX procedure
-
 		return nOfPackets;
 	}
 	else
@@ -147,39 +139,40 @@ inline static uint32_t _bootloader_acknowledgePackets()
 
 inline static uint32_t _bootloader_receiveAndFlashPackets(uint32_t nOfPackets)
 {
-	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_SET); // Turn-off LED1
-
 	HAL_StatusTypeDef halStatus;
+	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_SET); // Turn-off LED1
 	uint32_t nOfFlashed = 0; // Counter to track progress of flashed packets
 	for(uint8_t nSector = APP_FLASH_SECINI; nSector<= APP_FLASH_SECFIN; nSector++)
 	{
-		COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0x00, 0xFF}, 4, SERIAL_TIMEOUT); // Feedback when a sector is starting to be flashed
+		// FIXME this command cause all the memory to be shifted by 1 byte - Critical
+		//COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0x00, 0xFF}, 4, SERIAL_TIMEOUT); // Feedback when a sector is starting to be flashed
 
 		// Write all the addresses contained in the current flash sector
 		for(uint32_t addr=sectorAddr[nSector]; addr<(sectorAddr[nSector]+sectorSize[nSector]); addr+=0x04)
 		{
 			// Receive a SW packet via serial + parse it (little-endian) + write it to flash memory
-			COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT);
+			halStatus = COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT);
+
 			uint32_t packetData = (rx[3] << 24) + (rx[2] << 16) + (rx[1] << 8) + (rx[0] << 0);
 			halStatus = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, (uint64_t) packetData);
 
-			// Check if memory was written as expected
-			uint32_t* dataFlashed;
-			dataFlashed = addr;
-			
-			// Check for errors OR end of binary flashing
-			if((*dataFlashed) != packetData
+			// Check if programmed memory position == received packet OR
+			// HAL error during programming OR
+			// All packets were flashed / finished
+			if(*((uint32_t*)addr) != packetData
 				|| halStatus != HAL_OK 
-				|| ++nOfFlashed == nOfPackets) goto END_PROGRAMMING; 
+				|| ++nOfFlashed == nOfPackets)
+				{
+					goto END_PROGRAMMING;
+				}
 
 			HAL_GPIO_TogglePin(GPIOF, GPIO_PIN_10);
 		}
-		COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0x01, 0xFF}, 4, SERIAL_TIMEOUT); // Feedback when a sector is full
+		//COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0x01, 0xFF}, 4, SERIAL_TIMEOUT); // Feedback when a sector is full
 	}
 
-	END_PROGRAMMING:
+END_PROGRAMMING:
 	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_10, GPIO_PIN_SET); // Turn-off LED1
-
 	return nOfFlashed;
 }
 
