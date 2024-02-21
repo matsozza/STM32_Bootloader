@@ -58,7 +58,7 @@ void bootloader_init()
 			if(HAL_FLASH_Unlock() != HAL_OK) goto FLASH_ERROR; // Error in step 'a'
 
 			// --------------- b_(0x81) Erase memory dedicated to appl. sw + inform serial interface  ---------------
-			if(_bootloader_eraseApplicationSectors() == 0) goto FLASH_ERROR; // Error in step 'b'
+			if(!_bootloader_eraseApplicationSectors()) goto FLASH_ERROR; // Error in step 'b'
 
 			// --------------- c_(0x82) Send to serial interface -> ready to receive 'nOfPackets' of data  ---------------
 			uint32_t nOfPackets = _bootloader_acknowledgePackets();
@@ -68,6 +68,7 @@ void bootloader_init()
 			uint32_t nOfFlashed = _bootloader_receiveAndFlashPackets(nOfPackets);
 
 			// --------------- e_ Transmit feedback about flash process ---------------
+			HAL_Delay(50); // Wait last transmission
 			if(nOfFlashed == nOfPackets)
 			{
 				// TODO implement checksum / CRC in command '0x84'
@@ -89,6 +90,7 @@ FLASH_ERROR:
 	
 JUMP_TO_APPLICATION:
 	// 3_(0x85) Jump to application
+	HAL_Delay(50); // Wait last transmission
 	COMM_UART_SendData((uint8_t[4]){0x85,0xFF,0xFF,0xFF}, 4, SERIAL_TIMEOUT);
 	_bootloader_loadApplication(); // Load application file
 }
@@ -100,6 +102,7 @@ inline static uint8_t _bootloader_eraseApplicationSectors()
 	for(uint8_t idxS=APP_FLASH_SECINI; idxS <= APP_FLASH_SECFIN; idxS++ )
 	{
 		FLASH_Erase_Sector(idxS,FLASH_VOLTAGE_RANGE_3);
+		HAL_Delay(50); // Wait last transmission
 		halStatus = COMM_UART_SendData((uint8_t[4]){0x81,
 										idxS,
 										idxS == APP_FLASH_SECFIN,
@@ -144,7 +147,7 @@ inline static uint32_t _bootloader_receiveAndFlashPackets(uint32_t nOfPackets)
 	uint32_t nOfFlashed = 0; // Counter to track progress of flashed packets
 	for(uint8_t nSector = APP_FLASH_SECINI; nSector<= APP_FLASH_SECFIN; nSector++)
 	{
-		// FIXME this command cause all the memory to be shifted by 1 byte - Critical
+		// FIXME this command cause all the memory to be shifted by 1 byte - Timing Critical
 		//COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0x00, 0xFF}, 4, SERIAL_TIMEOUT); // Feedback when a sector is starting to be flashed
 
 		// Write all the addresses contained in the current flash sector
@@ -152,6 +155,7 @@ inline static uint32_t _bootloader_receiveAndFlashPackets(uint32_t nOfPackets)
 		{
 			// Receive a SW packet via serial + parse it (little-endian) + write it to flash memory
 			halStatus = COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT);
+			if(halStatus != HAL_OK) goto END_PROGRAMMING;
 
 			uint32_t packetData = (rx[3] << 24) + (rx[2] << 16) + (rx[1] << 8) + (rx[0] << 0);
 			halStatus = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, (uint64_t) packetData);
@@ -161,14 +165,10 @@ inline static uint32_t _bootloader_receiveAndFlashPackets(uint32_t nOfPackets)
 			// All packets were flashed / finished
 			if(*((uint32_t*)addr) != packetData
 				|| halStatus != HAL_OK 
-				|| ++nOfFlashed == nOfPackets)
-				{
-					goto END_PROGRAMMING;
-				}
-
+				|| ++nOfFlashed == nOfPackets)	goto END_PROGRAMMING;
 			HAL_GPIO_TogglePin(GPIOF, GPIO_PIN_10);
 		}
-		//COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0x01, 0xFF}, 4, SERIAL_TIMEOUT); // Feedback when a sector is full
+		COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0x01, 0xFF}, 4, SERIAL_TIMEOUT); // Feedback when a sector is full
 	}
 
 END_PROGRAMMING:
