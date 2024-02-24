@@ -72,7 +72,7 @@
 #define CONFIG_MEMORY_SECFIN       2                     /*Last Sector for Config*/
 
 // Configuration flash memory (NVM) specific offsets
-#define CONFIG_MEMORY_USED_SIZE    0x02                  /*Define used memory for Heap optimization - words (4-bytes)*/
+#define CONFIG_MEMORY_USED_SIZE    0x0008                /*Define used memory for config. mem (bytes)*/
 #define CONFIG_MEMORY_SW_MAJOR     0x0000                /*Offset - SW Major version*/ 
 #define CONFIG_MEMORY_SW_MINOR     0x0004                /*Offset - SW Minor version*/
 

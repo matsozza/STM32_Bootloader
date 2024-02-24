@@ -27,7 +27,7 @@ const uint8_t PROG_VER[2] 		= {MAJOR, MINOR};		// Bootloader version
 const uint32_t sectorAddr[] 	= FLASH_SECTOR_ADDR; 	// Memory layout - sector addresses
 const uint32_t sectorSize[] 	= FLASH_SECTOR_SIZE; 	// Memory layout - sector sizes
 uint8_t rx[4] 					= {0,0,0,0}; 			// Buffer for holding RX Packet information
-uint32_t* swConfigShadow;								// SW Config memory - shadow copy
+uint32_t swConfigShadow;								// SW Config memory - shadow copy address
 
 /* Internal functions prototypes ---------------------------------------------*/
 inline static uint32_t* _bootloader_configMemory_initShadow(void);
@@ -113,12 +113,12 @@ void bootloader_init()
 inline static uint32_t* _bootloader_configMemory_initShadow()
 {
 	// Allocate shadow memory
-	swConfigShadow = malloc(sizeof(uint32_t) * CONFIG_MEMORY_USED_SIZE);
+	swConfigShadow = malloc(CONFIG_MEMORY_USED_SIZE);
 	
 	// Create shadow copy of parameters
-	for(uint32_t idx=0; idx < sizeof(uint32_t) * CONFIG_MEMORY_USED_SIZE; idx+=0x04)
+	for(uint32_t idx=0; idx < CONFIG_MEMORY_USED_SIZE; idx+=0x04)
 	{
-		*(swConfigShadow + (idx>>2)) = (uint32_t) *(uint32_t*)(sectorAddr[CONFIG_MEMORY_SECINI] + idx);
+		*(swConfigShadow + idx) = (uint32_t) *(uint32_t*)(sectorAddr[CONFIG_MEMORY_SECINI] + idx);
 	}
 	return swConfigShadow;
 }
@@ -134,30 +134,28 @@ inline static uint8_t _bootloader_configMemory_deinitShadow()
 	}
 
 	// Write config. memory sectors with shadow copy
-	for(uint32_t idx=0; idx < sizeof(uint32_t) * CONFIG_MEMORY_USED_SIZE; idx+=0x04)
+	for(uint32_t idx=0; idx < CONFIG_MEMORY_USED_SIZE; idx+=0x04)
 	{
 		halStatus = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
 			sectorAddr[CONFIG_MEMORY_SECINI] + idx, 
-			(uint64_t) *(swConfigShadow + (idx>>2)));
+			(uint64_t) *(swConfigShadow + idx));
 
-		//if(halStatus != HAL_OK) return 0;
+		if(halStatus != HAL_OK) return 0;
 	}
-
 	free(swConfigShadow);
 	swConfigShadow = NULL;
-
 	return 1;
 }
 
 inline static uint32_t _bootloader_configMemory_getParameter(uint32_t memOffset)
 {
-	return (uint32_t) *(uint32_t*)(swConfigShadow + (memOffset >>2));
+	return (uint32_t) *(uint32_t*)(swConfigShadow + memOffset);
 }
 
 inline static uint32_t _bootloader_configMemory_setParameter(uint32_t memOffset, uint32_t paramValue)
 {
-	*(uint32_t*)(swConfigShadow + (memOffset>>2)) = (uint32_t) paramValue;
-	return (uint32_t) *(uint32_t*)(swConfigShadow + (memOffset>>2));
+	*(uint32_t*)(swConfigShadow + memOffset) = (uint32_t) paramValue;
+	return (uint32_t) *(uint32_t*)(swConfigShadow + memOffset);
 }
 
 // ********** Flashing procedure & SW Update methods **********
