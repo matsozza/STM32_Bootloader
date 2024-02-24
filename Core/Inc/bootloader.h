@@ -22,11 +22,7 @@
 #define MAJOR 0
 #define MINOR 1
 
-// Application start address
-#define APP_FLASH_ADDRESS         0x08040000            /*Sectors 6 to 11*/
-#define APP_FLASH_SIZE            0x0BFFFF              /*768KB*/
-#define APP_FLASH_SECINI          6                     /*Init Sector for App. SW*/
-#define APP_FLASH_SECFIN          11                    /*Last Sector for App. SW*/
+// ---------- Flash Memory standard parameters ----------
 
 // Flash memory sector architecture
 #define FLASH_SECTOR_ADDR       {             \
@@ -59,11 +55,28 @@
                                   0x20000  \
                                 } /* Size of flash sectors*/
 
-// Configuration NVM parameters start address
-#define CONFIG_FLASH_ADDRESS      0x08008000  /*Sectors 2*/
-#define CONFIG_FLASH_SIZE         0x3FFFF     /*16KB*/
+// ---------- Application Memory parameters ----------
 
-// Communication definitions
+// Application general addresses
+#define APP_MEMORY_SECINI          6                     /*Init Sector for App. SW*/
+#define APP_MEMORY_SECFIN          10                    /*Last Sector for App. SW*/
+
+// Application memory specific offsets
+#define APP_MEMORY_SW_MAJOR        0x0200                /*Memory rel. address containing SW Major version*/
+#define APP_MEMORY_SW_MINOR        0x0204                /*Memory rel. address containing SW Minor version*/
+
+// ---------- Config NVM Memory parameters ----------
+
+// Configuration flash memory (NVM) general addresses
+#define CONFIG_MEMORY_SECINI       2                     /*Init Sector for Config*/
+#define CONFIG_MEMORY_SECFIN       2                     /*Last Sector for Config*/
+
+// Configuration flash memory (NVM) specific offsets
+#define CONFIG_MEMORY_USED_SIZE    0x02                  /*Define used memory for Heap optimization - words (4-bytes)*/
+#define CONFIG_MEMORY_SW_MAJOR     0x0000                /*Offset - SW Major version*/ 
+#define CONFIG_MEMORY_SW_MINOR     0x0004                /*Offset - SW Minor version*/
+
+// ---------- Serial / Communication definitions ----------
 #define SERIAL_TIMEOUT				    1000      /* 1000ms */
 
 /* External variables includes -----------------------------------------------*/
