@@ -113,14 +113,14 @@ void bootloader_init()
 inline static uint32_t* _bootloader_configMemory_initShadow()
 {
 	// Allocate shadow memory
-	swConfigShadow = malloc(CONFIG_MEMORY_USED_SIZE);
+	swConfigShadow =(uint32_t) malloc(CONFIG_MEMORY_USED_SIZE);
 	
 	// Create shadow copy of parameters
 	for(uint32_t idx=0; idx < CONFIG_MEMORY_USED_SIZE; idx+=0x04)
 	{
-		*(swConfigShadow + idx) = (uint32_t) *(uint32_t*)(sectorAddr[CONFIG_MEMORY_SECINI] + idx);
+		*(uint32_t*)(swConfigShadow + idx) = (uint32_t) *(uint32_t*)(sectorAddr[CONFIG_MEMORY_SECINI] + idx);
 	}
-	return swConfigShadow;
+	return (uint32_t*)swConfigShadow;
 }
 
 inline static uint8_t _bootloader_configMemory_deinitShadow()
@@ -138,12 +138,12 @@ inline static uint8_t _bootloader_configMemory_deinitShadow()
 	{
 		halStatus = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
 			sectorAddr[CONFIG_MEMORY_SECINI] + idx, 
-			(uint64_t) *(swConfigShadow + idx));
+			(uint64_t) *(uint32_t*)(swConfigShadow + idx));
 
 		if(halStatus != HAL_OK) return 0;
 	}
-	free(swConfigShadow);
-	swConfigShadow = NULL;
+	free((uint32_t*)swConfigShadow);
+	swConfigShadow = (uint32_t)NULL;
 	return 1;
 }
 
