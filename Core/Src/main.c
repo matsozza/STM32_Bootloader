@@ -90,12 +90,8 @@ int main(void)
   MX_FATFS_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
-
   //initialise_monitor_handles(); // Semi-hosting
-
   bootloader_init(); // Start bootloader
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -103,6 +99,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

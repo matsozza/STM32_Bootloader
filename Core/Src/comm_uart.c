@@ -21,7 +21,7 @@ extern UART_HandleTypeDef UART_DEVICE_HANDLER;
 
 
 /* Internal functions prototypes ---------------------------------------------*/
-static uint32_t _ticToc(void);
+
 
 /* Functions implementation --------------------------------------------------*/
 

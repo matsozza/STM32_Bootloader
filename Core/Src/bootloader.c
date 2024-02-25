@@ -40,6 +40,7 @@ inline static uint32_t _bootloader_appMemory_acknowledgePackets(void);
 inline static uint32_t _bootloader_appMemory_receiveAndFlash(uint32_t);
 inline static void _bootloader_appMemory_loadApplication(void);
 
+uint16_t _gen_crc16(const uint8_t* , uint32_t );
 inline static uint8_t _checkPacket(uint8_t* packet, uint8_t expectedPacket[4],  uint8_t significance);
 
 /* Functions implementation --------------------------------------------------*/
@@ -61,7 +62,7 @@ void bootloader_init()
 	if(_checkPacket(rx, (uint8_t[4]){0xC0,0xFF,0xFF,0xFF}, (uint8_t) 0b1000))
 	{
 		// Check if the SW to be flashed is a different version from current MCU image
-		if(!_checkPacket(rx, (uint8_t[4]){0xFF, (uint8_t)curr_SW_MAJOR, (uint8_t)curr_SW_MINOR, 0xFF}, (uint8_t) 0b0110))
+		if(REPEATED_FLASH || !_checkPacket(rx, (uint8_t[4]){0xFF, (uint8_t)curr_SW_MAJOR, (uint8_t)curr_SW_MINOR, 0xFF}, (uint8_t) 0b0110))
 		{
 			// --------------- a_(0x81) Erase memory dedicated to appl. sw + inform serial interface  ---------------
 			if(!_bootloader_appMemory_eraseSectors()) goto FLASH_ERROR; // Error in step 'b'
@@ -81,8 +82,13 @@ void bootloader_init()
 			HAL_Delay(50); // Wait last transmission
 			if(nOfFlashed == nOfPackets)
 			{
-				// TODO implement checksum / CRC in command '0x84'
-				COMM_UART_SendData((uint8_t[4]) {0x84, 0xFF, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT); // OK
+    			// Calculate CRC + send transmission complete feedback
+				uint16_t crc16 = _gen_crc16((uint8_t*) sectorAddr[APP_MEMORY_SECINI], (uint32_t)nOfPackets*4);
+				COMM_UART_SendData((uint8_t[4]) {0x84,
+												 0x00,
+												 (crc16 >> 8) & 0xFF,
+												 (crc16 >> 0) & 0xFF},
+												 4, SERIAL_TIMEOUT); // OK
 			}
 			else
 			{
@@ -143,7 +149,7 @@ inline static uint8_t _bootloader_configMemory_deinitShadow()
 		if(halStatus != HAL_OK) return 0;
 	}
 	free((uint32_t*)swConfigShadow);
-	swConfigShadow = (uint32_t)NULL;
+	swConfigShadow = (uint32_t) NULL;
 	return 1;
 }
 
@@ -221,7 +227,7 @@ inline static uint32_t _bootloader_appMemory_receiveAndFlash(uint32_t nOfPackets
 			halStatus = COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT);
 			if(halStatus != HAL_OK) goto END_PROGRAMMING;
 
-			uint32_t packetData = (rx[3] << 24) + (rx[2] << 16) + (rx[1] << 8) + (rx[0] << 0);
+			uint32_t packetData = (rx[0] << 24) + (rx[1] << 16) + (rx[2] << 8) + (rx[3] << 0);
 			halStatus = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, (uint64_t) packetData);
 
 			// Check if programmed memory position == received packet OR
@@ -283,6 +289,27 @@ inline static void _bootloader_appMemory_loadApplication()
 }
 
 // ********** Internal Auxiliary methods **********
+
+uint16_t _gen_crc16(const uint8_t* data_p, uint32_t length){
+    uint8_t x;
+    uint16_t crc = 0xFFFF;
+
+    //while (length--)
+    for(uint32_t idx = 0; idx < length ; idx++)
+    {
+        if(idx == 8 || idx==512 || idx==256)
+        {
+            uint8_t xx = 1, xxt = 2;
+            xx = xx+xxt;
+        }
+
+    	x = (crc >> 8) ^ (*(data_p+idx));
+        x ^= x>>4;
+        crc = (crc << 8) ^ ((uint16_t)(x << 12)) ^ ((uint16_t)(x <<5)) ^ ((uint16_t)x); // 0x1021
+    }
+    return crc;
+}
+
 
 /*
  * @brief: Method to check if the contents of a packet meet the required content according to the significance.

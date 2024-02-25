@@ -78,6 +78,7 @@
 
 // ---------- Serial / Communication definitions ----------
 #define SERIAL_TIMEOUT				    1000      /* 1000ms */
+#define REPEATED_FLASH            1         /* Allow to reflash the same SW that is currently in the MCU */
 
 /* External variables includes -----------------------------------------------*/
 extern UART_HandleTypeDef huart2;
