@@ -71,7 +71,7 @@ Whenever the MCU sends a command to the computer, it'll wait for 1000ms for an a
 1. **MCU:     0x85 FF FF FF** ->MCU informs bootloader routine is finished, application SW is to be started.
 
 ---
-##Timing diagram of the process:
+## Timing diagram of the process:
 
 **Overview:**
 ![alt text](./images/timingDiagram.png)
@@ -94,7 +94,7 @@ Whenever the MCU sends a command to the computer, it'll wait for 1000ms for an a
 
 ---
 
-##Expected layout of an Application Image:
+## Expected layout of an Application Image:
 
 **Requirement 1:** As per currently configured, an application image is expected to start in address **0x0804000**.
 
