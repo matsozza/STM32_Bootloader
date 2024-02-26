@@ -15,7 +15,7 @@
 #define __BOOTLOADER_H
 
 /* Includes ------------------------------------------------------------------*/
-
+#include "comm_uart.h"
 
 /* Defines -------------------------------------------------------------------*/
 // Bootloader version
@@ -77,11 +77,12 @@
 #define CONFIG_MEMORY_SW_MINOR     0x0004                /*Offset - SW Minor version*/
 
 // ---------- Serial / Communication definitions ----------
-#define SERIAL_TIMEOUT				    1000      /* 1000ms */
-#define REPEATED_FLASH            1         /* Allow to reflash the same SW that is currently in the MCU */
+#define SERIAL_TIMEOUT_RX				    1000      /* 1000ms */
+#define SERIAL_TIMEOUT_TX				    20        /* 20ms */
+#define REPEATED_FLASH            1           /* Allow to reflash the same SW that is currently in the MCU */
 
 /* External variables includes -----------------------------------------------*/
-extern UART_HandleTypeDef huart2;
+
 
 /* Function prototypes -------------------------------------------------------*/
 void bootloader_init(void);

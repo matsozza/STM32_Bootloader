@@ -17,10 +17,9 @@
 #include <string.h>
 #include "stm32f4xx_hal.h"
 #include "bootloader.h"
-#include "comm_uart.h"
 
 /* External variables includes -----------------------------------------------*/
-extern UART_HandleTypeDef huart2;
+
 
 /* Internal variables includes -----------------------------------------------*/
 const uint8_t PROG_VER[2] 		= {MAJOR, MINOR};		// Bootloader version
@@ -55,10 +54,10 @@ void bootloader_init()
 	if(HAL_FLASH_Unlock() != HAL_OK) goto FLASH_ERROR; // Error in step 'a'
 
 	// 1_(0x80) Try to open communication with OTA serial interface 
-	COMM_UART_SendData((uint8_t[4]) {0x80,0xFF,0xFF,0xFF}, 4, SERIAL_TIMEOUT);
+	COMM_UART_SendData((uint8_t[4]) {0x80,0xFF,0xFF,0xFF}, 4, SERIAL_TIMEOUT_TX);
 	
 	// 2_(0xC0) Check if MCU answered via OTA serial interface 
-	if(COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT)!= HAL_OK) goto JUMP_TO_APPLICATION;
+	if(COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT_RX)!= HAL_OK) goto JUMP_TO_APPLICATION;
 	if(_checkPacket(rx, (uint8_t[4]){0xC0,0xFF,0xFF,0xFF}, (uint8_t) 0b1000))
 	{
 		// Check if the SW to be flashed is a different version from current MCU image
@@ -88,18 +87,18 @@ void bootloader_init()
 												 0x00,
 												 (crc16 >> 8) & 0xFF,
 												 (crc16 >> 0) & 0xFF},
-												 4, SERIAL_TIMEOUT); // OK
+												 4, SERIAL_TIMEOUT_TX); // OK
 			}
 			else
 			{
 				FLASH_ERROR:
-				COMM_UART_SendData((uint8_t[4]) {0x8F, 0xFF, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT); // NOK
+				COMM_UART_SendData((uint8_t[4]) {0x8F, 0xFF, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT_TX); // NOK
 			}
 		}
 		else
 		{
 			// --------------- a_(0x8E) Attempt to re-flash the same SW - Abort
-			COMM_UART_SendData((uint8_t[4]) {0x8E,0xFF,0xFF,0xFF}, 4, SERIAL_TIMEOUT);
+			COMM_UART_SendData((uint8_t[4]) {0x8E,0xFF,0xFF,0xFF}, 4, SERIAL_TIMEOUT_TX);
 		}
 	}
 	
@@ -109,7 +108,7 @@ void bootloader_init()
 
 	// 3_(0x85) Jump to application
 	HAL_Delay(50); // Wait last transmission
-	COMM_UART_SendData((uint8_t[4]){0x85,0xFF,0xFF,0xFF}, 4, SERIAL_TIMEOUT);
+	COMM_UART_SendData((uint8_t[4]){0x85,0xFF,0xFF,0xFF}, 4, SERIAL_TIMEOUT_TX);
 	_bootloader_appMemory_loadApplication(); // Load application file
 }
 
@@ -177,7 +176,7 @@ inline static uint8_t _bootloader_appMemory_eraseSectors()
 										idxS,
 										idxS == APP_MEMORY_SECFIN,
 										0xFF}, 
-										4, SERIAL_TIMEOUT); // Send (0x81 + sector no. + isLastSector) to confirm erased sector
+										4, SERIAL_TIMEOUT_RX); // Send (0x81 + sector no. + isLastSector) to confirm erased sector
 		if(halStatus!= HAL_OK) return 0; // Error in TX
 		HAL_GPIO_TogglePin(GPIOF, GPIO_PIN_9); // Toggle LED0
 	}
@@ -190,7 +189,7 @@ inline static uint32_t _bootloader_appMemory_acknowledgePackets()
 	HAL_StatusTypeDef halStatus;
 
 	// Receive packets data in RX
-	if(COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT) != HAL_OK) return 0; // Error in RX procedure
+	if(COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT_RX) != HAL_OK) return 0; // Error in RX procedure
 	
 	// Check if a '0xC1' was received
 	if(_checkPacket(rx, (uint8_t[4]){0xC1,0xFF,0xFF,0xFF}, (uint8_t) 0b1000))
@@ -200,7 +199,7 @@ inline static uint32_t _bootloader_appMemory_acknowledgePackets()
 			(uint8_t) ((nOfPackets & 0x00FF0000) >> 16),
 			(uint8_t) ((nOfPackets & 0x0000FF00) >> 8),
 			(uint8_t) ((nOfPackets & 0x000000FF) >> 0)},
-			4, SERIAL_TIMEOUT); // Answer back acknowledging the received 'nOfPackets' value
+			4, SERIAL_TIMEOUT_RX); // Answer back acknowledging the received 'nOfPackets' value
 		if(halStatus != HAL_OK) return 0; // Error in TX procedure
 		return nOfPackets;
 	}
@@ -218,13 +217,13 @@ inline static uint32_t _bootloader_appMemory_receiveAndFlash(uint32_t nOfPackets
 	for(uint8_t nSector = APP_MEMORY_SECINI; nSector<= APP_MEMORY_SECFIN; nSector++)
 	{
 		// FIXME this command cause all the memory to be shifted by 1 byte - Timing Critical
-		//COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0x00, 0xFF}, 4, SERIAL_TIMEOUT); // Feedback when a sector is starting to be flashed
+		//COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0x00, 0xFF}, 4, SERIAL_TIMEOUT_RX); // Feedback when a sector is starting to be flashed
 
 		// Write all the addresses contained in the current flash sector
 		for(uint32_t addr=sectorAddr[nSector]; addr<(sectorAddr[nSector]+sectorSize[nSector]); addr+=0x04)
 		{
 			// Receive a SW packet via serial + parse it (little-endian) + write it to flash memory
-			halStatus = COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT);
+			halStatus = COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT_RX);
 			if(halStatus != HAL_OK) goto END_PROGRAMMING;
 
 			uint32_t packetData = (rx[0] << 24) + (rx[1] << 16) + (rx[2] << 8) + (rx[3] << 0);
@@ -238,7 +237,7 @@ inline static uint32_t _bootloader_appMemory_receiveAndFlash(uint32_t nOfPackets
 				|| ++nOfFlashed == nOfPackets)	goto END_PROGRAMMING;
 			HAL_GPIO_TogglePin(GPIOF, GPIO_PIN_10);
 		}
-		COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0x01, 0xFF}, 4, SERIAL_TIMEOUT); // Feedback when a sector is full
+		COMM_UART_SendData((uint8_t[4]) {0x83, nSector, 0x01, 0xFF}, 4, SERIAL_TIMEOUT_RX); // Feedback when a sector is full
 	}
 
 	END_PROGRAMMING:
