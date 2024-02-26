@@ -93,6 +93,7 @@ Whenever the MCU sends a command to the computer, it'll wait for 1000ms for an a
 ![alt text](./images/graph_dependencies.png)
 
 ---
+
 ##Expected layout of an Application Image:
 
 **Requirement 1:** As per currently configured, an application image is expected to start in address **0x0804000**.
