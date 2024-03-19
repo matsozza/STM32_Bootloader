@@ -31,7 +31,9 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include "bootloader.h"
+#include "service_lcd.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -53,6 +55,8 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
+extern SPI_HandleTypeDef hspi1; // Expose handler
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -60,6 +64,16 @@ void Error_Handler(void);
 #define LED0_GPIO_Port GPIOF
 #define LED1_Pin GPIO_PIN_10
 #define LED1_GPIO_Port GPIOF
+#define LCD_RST_Pin GPIO_PIN_4
+#define LCD_RST_GPIO_Port GPIOA
+#define LCD_CLK_Pin GPIO_PIN_5
+#define LCD_CLK_GPIO_Port GPIOA
+#define LCD_CE_Pin GPIO_PIN_6
+#define LCD_CE_GPIO_Port GPIOA
+#define LCD_DIN_Pin GPIO_PIN_7
+#define LCD_DIN_GPIO_Port GPIOA
+#define LCD_DC_Pin GPIO_PIN_4
+#define LCD_DC_GPIO_Port GPIOC
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

@@ -12,10 +12,6 @@
   */
 
 /* Private includes ----------------------------------------------------------*/
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "stm32f4xx_hal.h"
 #include "bootloader.h"
 
 /* External variables includes -----------------------------------------------*/
@@ -39,15 +35,21 @@ inline static uint32_t _bootloader_appMemory_acknowledgePackets(void);
 inline static uint32_t _bootloader_appMemory_receiveAndFlash(uint32_t);
 inline static void _bootloader_appMemory_loadApplication(void);
 
+inline static void _bootloader_LCD_printSentence(char *sentence, uint8_t nCycles);
+inline static void _bootloader_LCD_printSentence2(char *sentence, char *sentence2, uint8_t nCycles);
+inline static void _bootloader_LCD_printSentence3(char *sentence, char *sentence2, char* sentence3, uint8_t nCycles);
+
 uint16_t _gen_crc16(const uint8_t* , uint32_t );
 inline static uint8_t _checkPacket(uint8_t* packet, uint8_t expectedPacket[4],  uint8_t significance);
 
 /* Functions implementation --------------------------------------------------*/
 void bootloader_init()
 {
+	_bootloader_LCD_printSentence("Booting", 4); // User feedback only via LCD
+	
 	_bootloader_configMemory_initShadow(); // Init. shadow copy of config. memory
 	uint32_t curr_SW_MAJOR = _bootloader_configMemory_getParameter(CONFIG_MEMORY_SW_MAJOR); 
-	uint32_t curr_SW_MINOR = _bootloader_configMemory_getParameter(CONFIG_MEMORY_SW_MINOR); 
+	uint32_t curr_SW_MINOR = _bootloader_configMemory_getParameter(CONFIG_MEMORY_SW_MINOR);
 
 	// 0_ Unlock memory + clear error flags 
 	__HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR | FLASH_FLAG_PGSERR );
@@ -58,6 +60,7 @@ void bootloader_init()
 	
 	// 2_(0xC0) Check if MCU answered via OTA serial interface 
 	if(COMM_UART_ReceiveData(rx, 4, SERIAL_TIMEOUT_RX)!= HAL_OK) goto JUMP_TO_APPLICATION;
+
 	if(_checkPacket(rx, (uint8_t[4]){0xC0,0xFF,0xFF,0xFF}, (uint8_t) 0b1000))
 	{
 		// Check if the SW to be flashed is a different version from current MCU image
@@ -73,32 +76,38 @@ void bootloader_init()
 			// --------------- c_Start receiving data + flashing MCU sectors (dummy flashing) ---------------
 			uint32_t nOfFlashed = _bootloader_appMemory_receiveAndFlash(nOfPackets);
 
-			// --------------- d_Update config. memory area (shadow copy) ---------------
-			_bootloader_configMemory_setParameter(CONFIG_MEMORY_SW_MAJOR, (uint32_t) *(uint32_t*)(sectorAddr[APP_MEMORY_SECINI] + APP_MEMORY_SW_MAJOR));
-			_bootloader_configMemory_setParameter(CONFIG_MEMORY_SW_MINOR, (uint32_t) *(uint32_t*)(sectorAddr[APP_MEMORY_SECINI] + APP_MEMORY_SW_MINOR));
-
-			// --------------- e_Transmit feedback about flash process ---------------
+			// --------------- d_Transmit feedback about flash process ---------------
 			HAL_Delay(50); // Wait last transmission
+			uint16_t memCRC;
 			if(nOfFlashed == nOfPackets)
 			{
     			// Calculate CRC + send transmission complete feedback
-				uint16_t crc16 = _gen_crc16((uint8_t*) sectorAddr[APP_MEMORY_SECINI], (uint32_t)nOfPackets*4);
-				COMM_UART_SendData((uint8_t[4]) {0x84,
-												 0x00,
-												 (crc16 >> 8) & 0xFF,
-												 (crc16 >> 0) & 0xFF},
-												 4, SERIAL_TIMEOUT_TX); // OK
+				memCRC = _gen_crc16((uint8_t*) sectorAddr[APP_MEMORY_SECINI], (uint32_t)nOfPackets*4);
+				COMM_UART_SendData((uint8_t[4]) {0x84, 0x00, (memCRC >> 8) & 0xFF, (memCRC >> 0) & 0xFF}, 4, SERIAL_TIMEOUT_TX); // OK
+				_bootloader_LCD_printSentence3("  Done!", "Loading", "App...",  3); // User feedback only via LCD
 			}
 			else
 			{
 				FLASH_ERROR:
 				COMM_UART_SendData((uint8_t[4]) {0x8F, 0xFF, 0xFF, 0xFF}, 4, SERIAL_TIMEOUT_TX); // NOK
+				while(1)
+				{
+					_bootloader_LCD_printSentence2(" Flash", " Error!",  2);
+					_bootloader_LCD_printSentence2(" Try", " Again!",  2);
+				}
 			}
+
+			// --------------- e_Update config. memory area (shadow copy) ---------------
+			_bootloader_configMemory_setParameter(CONFIG_MEMORY_SW_MAJOR, (uint32_t) *(uint32_t*)(sectorAddr[APP_MEMORY_SECINI] + APP_MEMORY_SW_MAJOR));
+			_bootloader_configMemory_setParameter(CONFIG_MEMORY_SW_MINOR, (uint32_t) *(uint32_t*)(sectorAddr[APP_MEMORY_SECINI] + APP_MEMORY_SW_MINOR));
+			_bootloader_configMemory_setParameter(CONFIG_MEMORY_SW_SIZE, (uint32_t) nOfPackets);
+			_bootloader_configMemory_setParameter(CONFIG_MEMORY_SW_CRC, (uint32_t) memCRC);
 		}
 		else
 		{
 			// --------------- a_(0x8E) Attempt to re-flash the same SW - Abort
 			COMM_UART_SendData((uint8_t[4]) {0x8E,0xFF,0xFF,0xFF}, 4, SERIAL_TIMEOUT_TX);
+			_bootloader_LCD_printSentence2("   SW", "Up2Date!",  3);
 		}
 	}
 	
@@ -170,6 +179,12 @@ inline static uint8_t _bootloader_appMemory_eraseSectors()
 	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_9, GPIO_PIN_SET); // Turn-off LED0
 	for(uint8_t idxS=APP_MEMORY_SECINI; idxS <= APP_MEMORY_SECFIN; idxS++ )
 	{
+		// Update LCD
+		char p[8];
+		sprintf(p, " %d/%d", idxS, APP_MEMORY_SECFIN);
+		_bootloader_LCD_printSentence3("Erasing", "sector:", p, 2);
+
+		// Erase sectors
 		FLASH_Erase_Sector(idxS,FLASH_VOLTAGE_RANGE_3);
 		HAL_Delay(50); // Wait last transmission
 		halStatus = COMM_UART_SendData((uint8_t[4]){0x81,
@@ -195,6 +210,14 @@ inline static uint32_t _bootloader_appMemory_acknowledgePackets()
 	if(_checkPacket(rx, (uint8_t[4]){0xC1,0xFF,0xFF,0xFF}, (uint8_t) 0b1000))
 	{
 		uint32_t nOfPackets = (uint32_t) ((rx[3]<<0) + (rx[2]<<8) + (rx[1]<<16)); // Parse packets data
+
+		// Update LCD
+		char p[8];
+		sprintf(p, " %d", nOfPackets);
+		_bootloader_LCD_printSentence3("SW size:", p, "packets", 2);
+		_bootloader_LCD_printSentence("Flashing", 0);
+
+		// Acknowledge received command to host machine
 		halStatus = COMM_UART_SendData((uint8_t[4]) {0x82,
 			(uint8_t) ((nOfPackets & 0x00FF0000) >> 16),
 			(uint8_t) ((nOfPackets & 0x0000FF00) >> 8),
@@ -230,8 +253,7 @@ inline static uint32_t _bootloader_appMemory_receiveAndFlash(uint32_t nOfPackets
 			halStatus = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, (uint64_t) packetData);
 
 			// Check if programmed memory position == received packet OR
-			// HAL error during programming OR
-			// All packets were flashed / finished
+			// HAL error during programming OR all packets were flashed 
 			if(*((uint32_t*)addr) != packetData
 				|| halStatus != HAL_OK 
 				|| ++nOfFlashed == nOfPackets)	goto END_PROGRAMMING;
@@ -250,10 +272,25 @@ inline static uint32_t _bootloader_appMemory_receiveAndFlash(uint32_t nOfPackets
  */
 inline static void _bootloader_appMemory_loadApplication()
 {
+	// --- 1_ Sanity check ---- Check is flashed image is valid / not empty
+	
+	// Get data from config. memory area
+	uint32_t curr_SW_CRC = (uint32_t) *((uint32_t*)(sectorAddr[CONFIG_MEMORY_SECINI] + CONFIG_MEMORY_SW_CRC));
+	uint32_t curr_SW_SIZE = (uint32_t) *((uint32_t*)(sectorAddr[CONFIG_MEMORY_SECINI] + CONFIG_MEMORY_SW_SIZE));
+
+	// Recalculate CRC from app. memory area
+	uint32_t memCRC = (uint32_t) _gen_crc16((uint8_t*) sectorAddr[APP_MEMORY_SECINI], (uint32_t)curr_SW_SIZE*4);
+
+	// Plausibilize values - is 'config area CRC' equal to 'memory CRC'?
+	// If not, app. memory might be empty or tampered - Halt program here
+	if(memCRC!=curr_SW_CRC) while(1) _bootloader_LCD_printSentence3("Empty or", "corrupt", "binary!",  4);
+
+	// --- 2_ Jump to application --- Perform all preliminary steps and jump to application address
+
 	// Disable all interrupts to perform all steps before loading application code
 	__disable_irq();
 
-	// Function pointer to application's reset handler
+	//Function pointer to application's reset handler
 	void (*app_Reset_Handler)(void) =	(void*)(*(volatile uint32_t*)(sectorAddr[APP_MEMORY_SECINI] + 0x04));
 
 	// Reset SCB parameters
@@ -286,6 +323,86 @@ inline static void _bootloader_appMemory_loadApplication()
 	// Call application's reset handler (starting point)
 	app_Reset_Handler();
 }
+
+// ********** LCD & User feedback methods **********
+
+inline static void _bootloader_LCD_printSentence(char *sentence, uint8_t nCycles)
+{
+  extern LCD_displayBuffer_t *LCD_displayBuffer01;
+  extern const uint8_t bootloader_startScreen_01_map[];
+  extern const uint8_t bootloader_startScreen_02_map[];
+
+  uint8_t skipCyc = nCycles > 0 ? 0:1;
+  for(uint8_t idx = 0; idx<nCycles + skipCyc; idx++)
+  {
+	if(idx%2==0)
+	{
+	  LCD_Buffer_writeMap(LCD_displayBuffer01, bootloader_startScreen_01_map);
+	  LCD_Buffer_writeSentence(LCD_displayBuffer01," ... ", 26, 2);
+	}
+	else
+	{
+	  LCD_Buffer_writeMap(LCD_displayBuffer01, bootloader_startScreen_02_map);
+	  LCD_Buffer_writeSentence(LCD_displayBuffer01,"     ", 26, 2);
+	}
+
+	LCD_Buffer_writeSentence(LCD_displayBuffer01,sentence, 18, 2);
+	LCD_Buffer_sendToSPI(LCD_displayBuffer01);
+	if(skipCyc==0) HAL_Delay(500);
+  }
+}
+
+inline static void _bootloader_LCD_printSentence2(char *sentence, char *sentence2, uint8_t nCycles)
+{
+  extern LCD_displayBuffer_t *LCD_displayBuffer01;
+  extern const uint8_t bootloader_startScreen_01_map[];
+  extern const uint8_t bootloader_startScreen_02_map[];
+
+  uint8_t skipCyc = nCycles > 0 ? 0:1;
+  for(uint8_t idx = 0; idx<nCycles + skipCyc; idx++)
+  {
+	if(idx%2==0)
+	{
+	  LCD_Buffer_writeMap(LCD_displayBuffer01, bootloader_startScreen_01_map);
+	}
+	else
+	{
+	  LCD_Buffer_writeMap(LCD_displayBuffer01, bootloader_startScreen_02_map);
+	}
+
+	LCD_Buffer_writeSentence(LCD_displayBuffer01, sentence, 18, 2);
+	LCD_Buffer_writeSentence(LCD_displayBuffer01, sentence2, 26, 2);
+	LCD_Buffer_sendToSPI(LCD_displayBuffer01);
+	if(skipCyc==0) HAL_Delay(500);
+  }
+}
+
+inline static void _bootloader_LCD_printSentence3(char *sentence, char *sentence2, char *sentence3, uint8_t nCycles)
+{
+  extern LCD_displayBuffer_t *LCD_displayBuffer01;
+  extern const uint8_t bootloader_startScreen_01_map[];
+  extern const uint8_t bootloader_startScreen_02_map[];
+
+  uint8_t skipCyc = nCycles > 0 ? 0:1;
+  for(uint8_t idx = 0; idx<nCycles + skipCyc; idx++)
+  {
+	if(idx%2==0)
+	{
+	  LCD_Buffer_writeMap(LCD_displayBuffer01, bootloader_startScreen_01_map);
+	}
+	else
+	{
+	  LCD_Buffer_writeMap(LCD_displayBuffer01, bootloader_startScreen_02_map);
+	}
+
+	LCD_Buffer_writeSentence(LCD_displayBuffer01, sentence, 14, 2);
+	LCD_Buffer_writeSentence(LCD_displayBuffer01, sentence2, 22, 2);
+	LCD_Buffer_writeSentence(LCD_displayBuffer01, sentence3, 30, 2);
+	LCD_Buffer_sendToSPI(LCD_displayBuffer01);
+	if(skipCyc==0) HAL_Delay(500);
+  }
+}
+
 
 // ********** Internal Auxiliary methods **********
 

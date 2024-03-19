@@ -15,7 +15,14 @@
 #define __BOOTLOADER_H
 
 /* Includes ------------------------------------------------------------------*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "stm32f4xx_hal.h"
 #include "comm_uart.h"
+
+/* Typedef  ------------------------------------------------------------------*/
+
 
 /* Defines -------------------------------------------------------------------*/
 // Bootloader version
@@ -72,14 +79,16 @@
 #define CONFIG_MEMORY_SECFIN       2                     /*Last Sector for Config*/
 
 // Configuration flash memory (NVM) specific offsets
-#define CONFIG_MEMORY_USED_SIZE    0x0008                /*Define used memory for config. mem (bytes)*/
+#define CONFIG_MEMORY_USED_SIZE    0x0010                /*Define used memory for config. mem (bytes)*/
 #define CONFIG_MEMORY_SW_MAJOR     0x0000                /*Offset - SW Major version*/ 
 #define CONFIG_MEMORY_SW_MINOR     0x0004                /*Offset - SW Minor version*/
+#define CONFIG_MEMORY_SW_SIZE      0x0008                /*Offset - SW Minor version*/
+#define CONFIG_MEMORY_SW_CRC       0x000C                /*Offset - SW Minor version*/
 
 // ---------- Serial / Communication definitions ----------
 #define SERIAL_TIMEOUT_RX				    1000      /* 1000ms */
 #define SERIAL_TIMEOUT_TX				    20        /* 20ms */
-#define REPEATED_FLASH            1           /* Allow to reflash the same SW that is currently in the MCU */
+#define REPEATED_FLASH              1         /* Allow to reflash the same SW that is currently in the MCU */
 
 /* External variables includes -----------------------------------------------*/
 
