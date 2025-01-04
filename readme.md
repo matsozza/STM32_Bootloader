@@ -5,6 +5,11 @@ This project consists in a **simple bootloader w/ flashing functionality.**
 If the STM32 board is connected to the computer via the serial / UART interface (through a UART ->serial USB adapter), a new binary can be flashed by pressing the "Reset Button" of the board while running the **Python Flash Loader** (submodule inside **Python_STM32_Bootloader_Flasher** folder).
 
 ---
+### Miniclip:
+
+[![Bootloader Miniclip](https://img.youtube.com/vi/l2WzaOwSJZY/0.jpg)](https://youtu.be/watch?v=l2WzaOwSJZY)
+
+---
 ###  MCU Memory Layout:
 
 The memory layout for this project is as follows:
